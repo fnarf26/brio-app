@@ -4,6 +4,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:brio/atur_threshold_screen.dart';
 
 class DetailSoilScreen extends StatefulWidget {
   const DetailSoilScreen({super.key});
@@ -13,16 +14,17 @@ class DetailSoilScreen extends StatefulWidget {
 }
 
 class _DetailSoilScreenState extends State<DetailSoilScreen> {
-  final String deviceId = "C44F337F3A58";
+  final String deviceId = "1000000001"; // Ganti dengan ID perangkat Anda
 
   // State variables for UI
   int _soilMoisture = 0;
   bool _pumpStatus = false;
   bool _isManualControl = true;
-  int _lowThreshold = 30;
-  int _highThreshold = 80;
   String _lastUpdate = "--:--:--";
   List<FlSpot> _soilData = [];
+
+  int _lowThreshold = 0;
+  int _highThreshold = 0;
 
   late StreamSubscription<DatabaseEvent> _dataSubscription;
 
@@ -90,7 +92,7 @@ class _DetailSoilScreenState extends State<DetailSoilScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7FE),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF4F7FE),
+        backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black54),
@@ -357,7 +359,7 @@ class _DetailSoilScreenState extends State<DetailSoilScreen> {
                           'Kelembapan tanah',
                           style: GoogleFonts.poppins(
                             color: const Color(0xFF4E4E4E),
-                            fontSize: 12,
+                            fontSize: 11,
                           ),
                         ),
                       ),

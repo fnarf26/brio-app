@@ -12,7 +12,7 @@ class DetailDhtScreen extends StatefulWidget {
 }
 
 class _DetailDhtScreenState extends State<DetailDhtScreen> {
-  final String deviceId = "C44F337F3A58";
+  final String deviceId = "1000000001"; // Ganti dengan ID perangkat Anda
   bool _showTemperatureChart = true;
 
   List<FlSpot> _temperatureData = [];
@@ -88,7 +88,7 @@ class _DetailDhtScreenState extends State<DetailDhtScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7FE),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF4F7FE),
+        backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black54),

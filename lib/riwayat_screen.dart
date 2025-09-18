@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +9,9 @@ import 'package:intl/intl.dart';
 // Enum untuk filter waktu
 enum TimeFilter { jam1, jam12, jam24 }
 
+int itemsPerPage = 10; // jumlah item per halaman
+int currentPage = 0; // halaman saat ini
+
 class RiwayatScreen extends StatefulWidget {
   const RiwayatScreen({super.key});
 
@@ -16,7 +20,7 @@ class RiwayatScreen extends StatefulWidget {
 }
 
 class _RiwayatScreenState extends State<RiwayatScreen> {
-  final String deviceId = "C44F337F3A58";
+  final String deviceId = "1000000001";
   late StreamSubscription<DatabaseEvent> _historySubscription;
 
   List<Map<String, dynamic>> _allHistory = [];
@@ -175,9 +179,9 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F7FE),
+      backgroundColor: const Color(0xFFEFEFFF),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF4F7FE),
+        backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
         title: Text(
@@ -502,6 +506,14 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
   }
 
   Widget _buildHistoryListCard() {
+    // Hitung total halaman
+    int totalPages = (_filteredHistory.length / itemsPerPage).ceil();
+
+    // Ambil data untuk halaman saat ini
+    int startIndex = currentPage * itemsPerPage;
+    int endIndex = min(startIndex + itemsPerPage, _filteredHistory.length);
+    List currentItems = _filteredHistory.sublist(startIndex, endIndex);
+
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFFE8E5FA),
@@ -516,6 +528,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
       ),
       child: Column(
         children: [
+          // Header dengan Filter Tanggal
           Container(
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
             decoration: const BoxDecoration(
@@ -560,6 +573,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                       setState(() {
                         _selectedDate = picked;
                         _applyDateFilter();
+                        currentPage = 0; // Reset ke halaman pertama
                       });
                     }
                   },
@@ -597,6 +611,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                               setState(() {
                                 _selectedDate = null;
                                 _applyDateFilter();
+                                currentPage = 0; // Reset ke halaman pertama
                               });
                             },
                             child: const Padding(
@@ -615,7 +630,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
               ],
             ),
           ),
-          (_filteredHistory.isEmpty)
+          (currentItems.isEmpty)
               ? Padding(
                   padding: const EdgeInsets.symmetric(vertical: 32),
                   child: Center(
@@ -631,11 +646,11 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
               : ListView.separated(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _filteredHistory.length,
+                  itemCount: currentItems.length,
                   separatorBuilder: (context, index) =>
                       const SizedBox(height: 8),
                   itemBuilder: (context, index) {
-                    final history = _filteredHistory[index];
+                    final history = currentItems[index];
                     final logTime = DateTime.fromMillisecondsSinceEpoch(
                       history['timestamp'] * 1000,
                     );
@@ -683,6 +698,40 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                     );
                   },
                 ),
+
+          const SizedBox(height: 12),
+
+          // Pagination
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ElevatedButton(
+                onPressed: currentPage > 0
+                    ? () {
+                        setState(() {
+                          currentPage--;
+                        });
+                      }
+                    : null,
+                child: const Text('Previous'),
+              ),
+              const SizedBox(width: 16),
+              Text('Page ${currentPage + 1} / $totalPages'),
+              const SizedBox(width: 16),
+              ElevatedButton(
+                onPressed: currentPage < totalPages - 1
+                    ? () {
+                        setState(() {
+                          currentPage++;
+                        });
+                      }
+                    : null,
+                child: const Text('Next'),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
         ],
       ),
     );

@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "70390748137",
+    "firebase_url": "https://bharita-a41fa-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "bharita-a41fa",
+    "storage_bucket": "bharita-a41fa.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:70390748137:android:c5080135555f0c8bfaf178",
+        "android_client_info": {
+          "package_name": "com.example.brio"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD0g6u_gmgOK4gQsExiYBI79QUbdkhFwjc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

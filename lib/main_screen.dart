@@ -33,7 +33,7 @@ class _MainScreenState extends State<MainScreen> {
       body: IndexedStack(index: _selectedIndex, children: _pages),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Color(0xFF7266CF),
           boxShadow: [
             BoxShadow(blurRadius: 20, color: Colors.black.withOpacity(.1)),
           ],
@@ -54,23 +54,85 @@ class _MainScreenState extends State<MainScreen> {
                 fontSize: 12, // Reduced from default size
                 fontWeight: FontWeight.w500,
               ),
-              items: const <BottomNavigationBarItem>[
+              items: <BottomNavigationBarItem>[
                 BottomNavigationBarItem(
-                  icon: Icon(Icons.grid_view_rounded),
+                  icon: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white, // lingkaran putih saat tidak dipilih
+                    ),
+                    child: const Icon(
+                      Icons.grid_view_rounded,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  activeIcon: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Color(0xFF433A84), // lingkaran ungu saat dipilih
+                    ),
+                    child: const Icon(
+                      Icons.grid_view_rounded,
+                      color: Colors.white,
+                    ),
+                  ),
                   label: 'Monitoring',
                 ),
                 BottomNavigationBarItem(
-                  icon: Icon(Icons.history_rounded),
+                  icon: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white, // lingkaran putih saat tidak dipilih
+                    ),
+                    child: const Icon(
+                      Icons.history_rounded,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  activeIcon: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Color(0xFF433A84), // lingkaran ungu saat dipilih
+                    ),
+                    child: const Icon(
+                      Icons.history_rounded,
+                      color: Colors.white,
+                    ),
+                  ),
                   label: 'Riwayat',
                 ),
                 BottomNavigationBarItem(
-                  icon: Icon(Icons.settings_rounded),
+                  icon: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white, // lingkaran putih saat tidak dipilih
+                    ),
+                    child: const Icon(
+                      Icons.settings_rounded,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  activeIcon: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Color(0xFF433A84), // lingkaran ungu saat dipilih
+                    ),
+                    child: const Icon(
+                      Icons.settings_rounded,
+                      color: Colors.white,
+                    ),
+                  ),
                   label: 'Pengaturan',
                 ),
               ],
               currentIndex: _selectedIndex,
-              selectedItemColor: const Color(0xFF4B40A1), // Warna saat dipilih
-              unselectedItemColor: Colors.grey, // Warna saat tidak dipilih
+              selectedItemColor: Colors.white, // Warna saat dipilih
               onTap: _onItemTapped,
               backgroundColor: Colors
                   .transparent, // Transparan agar warna container terlihat

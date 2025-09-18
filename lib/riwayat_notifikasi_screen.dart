@@ -16,7 +16,7 @@ class RiwayatNotifikasiScreen extends StatefulWidget {
 }
 
 class _RiwayatNotifikasiScreenState extends State<RiwayatNotifikasiScreen> {
-  final String deviceId = "C44F337F3A58";
+  final String deviceId = "1000000001"; // Ganti dengan device ID yang sesuai
   late StreamSubscription<DatabaseEvent> _logsSubscription;
 
   List<Map<String, dynamic>> _allLogs = [];
@@ -133,9 +133,9 @@ class _RiwayatNotifikasiScreenState extends State<RiwayatNotifikasiScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F7FE),
+      backgroundColor: const Color(0xFFEFEFFF),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF4F7FE),
+        backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black54),
@@ -304,6 +304,7 @@ class _RiwayatNotifikasiScreenState extends State<RiwayatNotifikasiScreen> {
         ],
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start, 
         children: [
           // Soil Percentage
           Text(
@@ -329,17 +330,17 @@ class _RiwayatNotifikasiScreenState extends State<RiwayatNotifikasiScreen> {
                   style: GoogleFonts.poppins(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
-                    fontSize: 14,
+                    fontSize: 12,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Row(
                   children: [
                     Text(
-                      'Pompa penyiraman otomatis menyala ',
+                      'Pompa air otomatis ',
                       style: GoogleFonts.poppins(
                         color: Colors.white.withOpacity(0.8),
-                        fontSize: 12,
+                        fontSize: 10,
                       ),
                     ),
                     Text(
@@ -347,7 +348,7 @@ class _RiwayatNotifikasiScreenState extends State<RiwayatNotifikasiScreen> {
                       style: GoogleFonts.poppins(
                         color: isPumpOn ? Colors.greenAccent : Colors.redAccent,
                         fontWeight: FontWeight.bold,
-                        fontSize: 12,
+                        fontSize: 10,
                       ),
                     ),
                   ],
@@ -356,24 +357,29 @@ class _RiwayatNotifikasiScreenState extends State<RiwayatNotifikasiScreen> {
             ),
           ),
           // Timestamp
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                DateFormat('dd/MM/yyyy').format(logTime),
-                style: GoogleFonts.poppins(
-                  color: Colors.white.withOpacity(0.8),
-                  fontSize: 10,
+          SizedBox(
+            width: 65, // cukup utk dd/MM/yyyy + HH:mm
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  DateFormat('dd/MM/yyyy').format(logTime),
+                  style: GoogleFonts.poppins(
+                    color: Colors.white.withOpacity(0.8),
+                    fontSize: 10,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-              Text(
-                DateFormat('HH:mm').format(logTime),
-                style: GoogleFonts.poppins(
-                  color: Colors.white.withOpacity(0.8),
-                  fontSize: 10,
+                Text(
+                  DateFormat('HH:mm').format(logTime),
+                  style: GoogleFonts.poppins(
+                    color: Colors.white.withOpacity(0.8),
+                    fontSize: 10,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),

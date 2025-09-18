@@ -32,12 +32,16 @@ dependencies:
     sdk: flutter
 
   # Tambahkan baris-baris ini
-  firebase_core: ^2.15.1
-  firebase_database: ^10.2.5
-  google_fonts: ^5.1.0
+  firebase_core: ^4.1.0
+  image_picker: ^1.1.1
+  firebase_storage: ^13.0.1
+  cloud_firestore: ^6.0.1
+  firebase_database: ^12.0.1
+  permission_handler: ^11.3.1
+  google_fonts: ^6.3.1
   flutter_svg: ^2.0.7 # Tambahkan baris ini
-  connectivity_plus: ^5.0.2
-  intl: ^0.18.1 # Tambahkan baris ini
+  connectivity_plus: ^6.1.5
+  intl: ^0.20.2 # Tambahkan baris ini
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -50,7 +54,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
 
-  fl_chart: ^0.63.0 # <-- Tambahkan baris ini
+  fl_chart: ^1.1.0 # <-- Tambahkan baris ini
   rename: ^3.0.2
 
   # The "flutter_lints" package below contains a set of recommended lints to
@@ -58,8 +62,8 @@ dev_dependencies:
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^5.0.0
-  flutter_launcher_icons: ^0.13.1 # <-- Tambahkan baris ini
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4 # <-- Tambahkan baris ini
 
   # Tambahkan konfigurasi ini di bagian bawah
 flutter_launcher_icons:

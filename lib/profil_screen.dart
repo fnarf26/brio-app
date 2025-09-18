@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:permission_handler/permission_handler.dart';
+
 
 class ProfilScreen extends StatefulWidget {
-  const ProfilScreen({Key? key}) : super(key: key);
+  const ProfilScreen({super.key});
 
   @override
   _ProfilScreenState createState() => _ProfilScreenState();
@@ -11,6 +17,10 @@ class ProfilScreen extends StatefulWidget {
 class _ProfilScreenState extends State<ProfilScreen> {
   final _namaController = TextEditingController(text: 'Jonny');
   final _emailController = TextEditingController(text: 'jonny23@gmail.com');
+
+  // --- Tambahkan di sini ---
+  File? _imageFile;
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void dispose() {
@@ -22,9 +32,9 @@ class _ProfilScreenState extends State<ProfilScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F7FE),
+      backgroundColor: const Color(0xFFEFEFFF),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF4F7FE),
+        backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(
@@ -93,7 +103,7 @@ class _ProfilScreenState extends State<ProfilScreen> {
                     'SIMPAN',
                     const Color(0xFF4F4DAE),
                     Colors.white,
-                    () {},
+                     _uploadImage, 
                   ),
                 ),
                 const SizedBox(width: 14),
@@ -115,17 +125,59 @@ class _ProfilScreenState extends State<ProfilScreen> {
     );
   }
 
+  // ambil gambar dari galeri
+  Future<void> _pickImage() async {
+    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _imageFile = File(pickedFile.path);
+      });
+    }
+
+    await _picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _imageFile = File(pickedFile.path);
+      });
+      await _uploadImage(); // 👉 langsung upload setelah pilih
+    }
+  }
+
+  // simpan ke firebase storage
+  Future<void> _uploadImage() async {
+    if (_imageFile == null) return;
+
+    try {
+      final fileName = DateTime.now().millisecondsSinceEpoch.toString();
+      final storageRef = FirebaseStorage.instance.ref().child(
+        'profile_pictures/$fileName.jpg',
+      );
+
+      await storageRef.putFile(_imageFile!);
+
+      final downloadUrl = await storageRef.getDownloadURL();
+      print("✅ Upload berhasil! URL: $downloadUrl");
+
+      // TODO: simpan `downloadUrl` ke Firebase Database / Firestore sesuai kebutuhanmu
+    } catch (e) {
+      print("❌ Upload gagal: $e");
+    }
+  }
+
   Widget _buildProfilePicture() {
     return Column(
       children: [
         CircleAvatar(
           radius: 44,
           backgroundColor: const Color(0xFF8D8AFF).withOpacity(0.8),
-          child: const Icon(Icons.person, color: Colors.white, size: 48),
+          backgroundImage: _imageFile != null ? FileImage(_imageFile!) : null,
+          child: _imageFile == null
+              ? const Icon(Icons.person, color: Colors.white, size: 48)
+              : null,
         ),
         const SizedBox(height: 10),
         TextButton(
-          onPressed: () {},
+          onPressed: _pickImage, // 👉 Panggil fungsi ini
           child: Text(
             'Ubah foto profil',
             style: GoogleFonts.poppins(

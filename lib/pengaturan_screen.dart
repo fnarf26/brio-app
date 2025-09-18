@@ -9,9 +9,9 @@ class PengaturanScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F7FE),
+      backgroundColor: const Color(0xFFEFEFFF),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF4F7FE),
+        backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
         title: Text(
@@ -81,6 +81,7 @@ class PengaturanScreen extends StatelessWidget {
     required String text,
     required List<Color> gradientColors,
     required VoidCallback onTap,
+    double iconSize = 30,
   }) {
     return GestureDetector(
       onTap: () {
@@ -126,15 +127,15 @@ class PengaturanScreen extends StatelessWidget {
                 child: Image.asset(
                   'assets/images/soil_icon.png',
                   color: Colors.white,
-                  height: 24, // Reduced from 24 to 22
-                  width: 24, // Reduced from 24 to 22
+                  height: iconSize, // Reduced from 24 to 22
+                  width: iconSize, // Reduced from 24 to 22
                 ),
               )
             else
               Icon(
                 icon,
                 color: Colors.white,
-                size: 24, // Reduced from 24 to 22
+                size: iconSize, // Reduced from 24 to 22
               ),
             const SizedBox(width: 12), // Reduced from 16 to 12
             Text(

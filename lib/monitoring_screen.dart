@@ -7,6 +7,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:brio/detail_dht_screen.dart';
 import 'package:brio/detail_soil_screen.dart';
 import 'package:brio/riwayat_notifikasi_screen.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 class MonitoringScreen extends StatefulWidget {
   const MonitoringScreen({super.key});
@@ -16,7 +17,7 @@ class MonitoringScreen extends StatefulWidget {
 }
 
 class _MonitoringScreenState extends State<MonitoringScreen> {
-  final String deviceId = "C44F337F3A58";
+  final String deviceId = "1000000001";
 
   // Variabel state untuk data sensor
   int soilMoisture = 0;
@@ -53,13 +54,16 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
     });
 
     // Listen to connectivity changes
-    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
-      ConnectivityResult result,
-    ) {
-      setState(() {
-        isInternetConnected = result != ConnectivityResult.none;
-      });
-    });
+    _connectivitySubscription =
+        Connectivity().onConnectivityChanged.listen(
+              (ConnectivityResult result) {
+                    setState(() {
+                      isInternetConnected = result != ConnectivityResult.none;
+                    });
+                  }
+                  as void Function(List<ConnectivityResult> event)?,
+            )
+            as StreamSubscription<ConnectivityResult>;
   }
 
   void _activateListeners() {
@@ -109,7 +113,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
           final dt = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
           loadedHistory.add({
             'text':
-                'Suhu : ${item['temperature']}°C & Kelembaban : ${item['humidity']}% & Soil : ${item['soilMoisture']}%',
+                'Suhu : ${item['temperature']}°C & Kelembapan : ${item['humidity']}% & Soil : ${item['soilMoisture']}%',
             'time':
                 "${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')} ${dt.day}-${dt.month}-${dt.year}",
           });
@@ -143,17 +147,17 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F7FE),
+      backgroundColor: const Color(0xFFF0EFFF),
       appBar: AppBar(
         toolbarHeight: 80,
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Image.asset('assets/images/brio_logo.png', height: 50),
-            const SizedBox(width: 8),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
                   isInternetConnected ? 'Online' : 'Offline',
@@ -175,18 +179,18 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
                 ),
               ],
             ),
+            const SizedBox(width: 15),
+            Align(
+              alignment: Alignment.center,
+              child: Image.asset('assets/images/brio_logo.png', height: 70),
+            ),
           ],
         ),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 16.0),
-            child: IconButton(
-              icon: const Icon(
-                Icons.notifications_outlined,
-                color: Colors.black54,
-                size: 30,
-              ),
-              onPressed: () {
+            child: GestureDetector(
+              onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -194,6 +198,21 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
                   ),
                 );
               },
+              child: Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF796DF5), // warna kotak
+                  borderRadius: BorderRadius.circular(
+                    10,
+                  ), // sudut kotak (ubah ke 0 kalau mau kotak full)
+                ),
+                child: const Icon(
+                  Icons.notifications_outlined,
+                  color: Colors.white, // logo jadi putih
+                  size: 25,
+                ),
+              ),
             ),
           ),
         ],
@@ -203,16 +222,20 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildSectionTitle('MONITORING'),
+            _buildSectionTitles('MONITORING'),
             const SizedBox(height: 10),
             IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(child: _buildSoilCard()),
-                  const SizedBox(width: 16),
-                  Expanded(child: _buildEnvironmentCard()),
-                ],
+              child: Center(
+                child: Row(
+                  mainAxisAlignment:
+                      MainAxisAlignment.center, // posisi ke tengah
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(child: _buildSoilCard()),
+                    const SizedBox(width: 16),
+                    Expanded(child: _buildEnvironmentCard()),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 24),
@@ -255,14 +278,14 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
                                 children: [
                                   const SizedBox(height: 8),
                                   _buildRadioOption(
-                                    "Kontrol manual",
+                                    "Kontrol Manual",
                                     isManualControl,
                                     () =>
                                         setState(() => isManualControl = true),
                                   ),
                                   const SizedBox(height: 16),
                                   _buildRadioOption(
-                                    "Kontrol otomatis",
+                                    "Kontrol Otomatis",
                                     !isManualControl,
                                     () =>
                                         setState(() => isManualControl = false),
@@ -315,6 +338,21 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
     );
   }
 
+  /// Widget untuk judul section
+  Widget _buildSectionTitles(String title) {
+    return Center(
+      child: Text(
+        title,
+        style: GoogleFonts.poppins(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          color: Colors.black,
+        ),
+        textAlign: TextAlign.center, // rata tengah
+      ),
+    );
+  }
+
   Widget _buildSectionTitle(String title) {
     return Text(
       title,
@@ -330,17 +368,17 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
   Widget _buildSensorValue(IconData icon, String value) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          Icon(icon, color: Colors.white, size: 24),
-          const SizedBox(width: 12),
+          Icon(icon, color: Colors.white, size: 18),
+          const SizedBox(width: 8),
           Text(
             value,
             style: GoogleFonts.poppins(
               color: Colors.white,
-              fontSize: 20,
+              fontSize: 16,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -368,7 +406,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
         children: [
           SvgPicture.asset(
             'assets/icons/soil_icon.svg',
-            height: 35,
+            height: 37,
             colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcIn),
           ),
           const SizedBox(width: 10),
@@ -376,10 +414,11 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
             '$soilMoisture %',
             style: GoogleFonts.poppins(
               color: Colors.white,
-              fontSize: 36,
+              fontSize: 38,
               fontWeight: FontWeight.bold,
             ),
           ),
+          const SizedBox(height: 14),
         ],
       ),
     );
@@ -402,19 +441,22 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
           MaterialPageRoute(builder: (context) => const DetailDhtScreen()),
         );
       },
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _buildSensorValue(
-            Icons.thermostat,
-            '${temperature.toStringAsFixed(1)}°C',
-          ),
-          const SizedBox(height: 10),
-          _buildSensorValue(
-            Icons.water_drop,
-            '${humidity.toStringAsFixed(0)}%',
-          ),
-        ],
+      child: Expanded(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildSensorValue(
+              Icons.thermostat,
+              '${temperature.toStringAsFixed(1)}°C',
+            ),
+            const SizedBox(height: 13),
+            _buildSensorValue(
+              Icons.water_drop,
+              '${humidity.toStringAsFixed(0)}%',
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -435,6 +477,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
+        height: 233,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -470,7 +513,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
                 Text(
                   sensorName,
                   style: GoogleFonts.poppins(
-                    color: const Color(0xFFFFE883), // Change to yellow color
+                    color: const Color(0xFFFFE883),
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                   ),
@@ -491,8 +534,8 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            Expanded(child: Center(child: child)),
-            const SizedBox(height: 8),
+            Center(child: child),
+            const SizedBox(height: 12),
             const Divider(color: Colors.white54),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -533,7 +576,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
               child: Text(
                 title,
                 style: GoogleFonts.poppins(
-                  fontSize: 13,
+                  fontSize: 12,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -593,7 +636,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
                           color: pumpStatus
                               ? const Color(0xFF69F0AE)
                               : const Color(0xFFFF5252),
-                          fontSize: 28,
+                          fontSize: 25,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -797,7 +840,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
                   "Aktifkan Pompa",
                   style: GoogleFonts.poppins(
                     fontWeight: FontWeight.w600,
-                    fontSize: 11,
+                    fontSize: 10,
                   ),
                 ),
               ),

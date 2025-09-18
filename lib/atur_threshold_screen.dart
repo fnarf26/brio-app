@@ -12,16 +12,16 @@ class AturThresholdScreen extends StatefulWidget {
 }
 
 class _AturThresholdScreenState extends State<AturThresholdScreen> {
-  final String deviceId = "C44F337F3A58";
+  final String deviceId = "1000000001";
   late DatabaseReference _configRef;
 
   // Controllers for text fields
-  final _lowController = TextEditingController();
-  final _highController = TextEditingController();
+  final TextEditingController _lowController = TextEditingController();
+  final TextEditingController _highController = TextEditingController();
 
   // State variables
-  int _currentLow = 0;
-  int _currentHigh = 0;
+  int _currentLow = 30;
+  int _currentHigh = 80;
   late StreamSubscription<DatabaseEvent> _configSubscription;
 
   @override
@@ -63,14 +63,32 @@ class _AturThresholdScreenState extends State<AturThresholdScreen> {
         return;
       }
 
-      await _configRef.update({
-        'lowThreshold': newLow,
-        'highThreshold': newHigh,
+       setState(() {
+        // Update nilai di UI
+        _currentLow = newLow;
+        _currentHigh = newHigh;
+
+        // Update controller juga
+        _lowController.text = _currentLow.toString();
+        _highController.text = _currentHigh.toString();
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Threshold berhasil diperbarui!')),
-      );
+      try {
+        // Update ke Firebase
+        await _configRef.update({
+          'lowThreshold': _currentLow,
+          'highThreshold': _currentHigh,
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Threshold berhasil diperbarui!')),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal menyimpan ke Firebase: $e')),
+        );
+      }
+
       FocusScope.of(context).unfocus(); // Close keyboard
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -81,8 +99,10 @@ class _AturThresholdScreenState extends State<AturThresholdScreen> {
 
   void _resetFields() {
     setState(() {
-      _lowController.text = '30';
-      _highController.text = '80';
+      _currentLow = 0; // atau 30 kalau mau default 30
+      _currentHigh = 0; // atau 80 kalau mau default 80
+      _lowController.text = _currentLow.toString();
+      _highController.text = _currentHigh.toString();
     });
     FocusScope.of(context).unfocus(); // Close keyboard
   }
@@ -98,9 +118,9 @@ class _AturThresholdScreenState extends State<AturThresholdScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F7FE),
+      backgroundColor: const Color(0xFFEFEFFF),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF4F7FE),
+        backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black54),
@@ -128,9 +148,9 @@ class _AturThresholdScreenState extends State<AturThresholdScreen> {
             Text(
               'Atur batas nilai threshold',
               style: GoogleFonts.poppins(
-                fontSize: 13, // Reduced from 18 to 13
+                fontSize: 16, // Reduced from 18 to 13
                 fontWeight: FontWeight.bold,
-                color: Colors.black54, // Changed to match monitoring style
+                color: Colors.black, // Changed to match monitoring style
               ),
             ),
             const SizedBox(height: 12), // Reduced from 16
@@ -140,10 +160,10 @@ class _AturThresholdScreenState extends State<AturThresholdScreen> {
               hint: '30',
               controller: _lowController,
               sliderColor: const Color(0xFFFFC042),
-              value: double.tryParse(_lowController.text) ?? 30,
+              value: _currentLow.toDouble(),
               onChanged: (value) {
                 setState(() {
-                  _lowController.text = value.round().toString();
+                  _currentLow = value.round();
                 });
               },
             ),
@@ -154,10 +174,10 @@ class _AturThresholdScreenState extends State<AturThresholdScreen> {
               hint: '80',
               controller: _highController,
               sliderColor: const Color(0xFF95FF78),
-              value: double.tryParse(_highController.text) ?? 80,
+              value: _currentHigh.toDouble(),
               onChanged: (value) {
                 setState(() {
-                  _highController.text = value.round().toString();
+                  _currentHigh = value.round();
                 });
               },
             ),
@@ -222,8 +242,8 @@ class _AturThresholdScreenState extends State<AturThresholdScreen> {
               children: [
                 SvgPicture.asset(
                   'assets/icons/soil_icon.svg',
-                  height: 24,
-                  width: 24,
+                  height: 27,
+                  width: 27,
                   colorFilter: const ColorFilter.mode(
                     Colors.white,
                     BlendMode.srcIn,
@@ -235,7 +255,7 @@ class _AturThresholdScreenState extends State<AturThresholdScreen> {
                   style: GoogleFonts.poppins(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
-                    fontSize: 13, // Reduced from 16 to 13
+                    fontSize: 14, // Reduced from 16 to 13
                   ),
                 ),
               ],
@@ -268,7 +288,7 @@ class _AturThresholdScreenState extends State<AturThresholdScreen> {
                       'Low',
                       style: GoogleFonts.poppins(
                         color: Colors.white,
-                        fontSize: 13, // Reduced from 16 to 13
+                        fontSize: 20, // Reduced from 16 to 13
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -294,7 +314,7 @@ class _AturThresholdScreenState extends State<AturThresholdScreen> {
                 ),
                 // Divider
                 Container(
-                  width: 1,
+                  width: 3,
                   height: 80,
                   color: Colors.white.withOpacity(0.5),
                 ),
@@ -305,7 +325,7 @@ class _AturThresholdScreenState extends State<AturThresholdScreen> {
                       'High',
                       style: GoogleFonts.poppins(
                         color: Colors.white,
-                        fontSize: 13, // Reduced from 16 to 13
+                        fontSize: 20, // Reduced from 16 to 13
                         fontWeight: FontWeight.w500,
                       ),
                     ),
