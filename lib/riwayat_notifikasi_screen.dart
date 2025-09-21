@@ -282,9 +282,14 @@ class _RiwayatNotifikasiScreenState extends State<RiwayatNotifikasiScreen> {
     final bool isPumpOn = log['action'] == 'ON';
     final int soilValue = log['soil'];
     final bool isLowMoisture = soilValue < 30;
+    // ambil waktu dari IoT
     final DateTime logTime = DateTime.fromMillisecondsSinceEpoch(
       log['timestamp'] * 1000,
-    );
+    ).toLocal();
+
+    // ambil waktu sekarang (aplikasi/HP)
+    final DateTime now = DateTime.now();  
+
     final Color cardColor = index.isOdd
         ? const Color(0xFF7654B2)
         : const Color(0xFF5347AD);
@@ -363,7 +368,7 @@ class _RiwayatNotifikasiScreenState extends State<RiwayatNotifikasiScreen> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  DateFormat('dd/MM/yyyy').format(logTime),
+                  DateFormat('dd/MM/yyyy').format(now),
                   style: GoogleFonts.poppins(
                     color: Colors.white.withOpacity(0.8),
                     fontSize: 10,
@@ -371,7 +376,7 @@ class _RiwayatNotifikasiScreenState extends State<RiwayatNotifikasiScreen> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
-                  DateFormat('HH:mm').format(logTime),
+                  DateFormat('HH:mm').format(now),
                   style: GoogleFonts.poppins(
                     color: Colors.white.withOpacity(0.8),
                     fontSize: 10,

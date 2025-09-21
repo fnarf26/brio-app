@@ -50,12 +50,18 @@ class _DetailSoilScreenState extends State<DetailSoilScreen> {
           _isManualControl = currentData['isManualControl'] ?? true;
           final lastTimestamp = currentData['timestamp'];
           if (lastTimestamp != null) {
+            // konversi ke DateTime
             final dt = DateTime.fromMillisecondsSinceEpoch(
               lastTimestamp * 1000,
-            );
+            ).toLocal(); // sesuaikan dengan waktu lokal perangkat
+
             _lastUpdate =
-                "${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')} ${dt.day}-${dt.month}-${dt.year}";
+                "${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')} "
+                "${dt.day.toString().padLeft(2, '0')}-"
+                "${dt.month.toString().padLeft(2, '0')}-"
+                "${dt.year}";
           }
+
         }
         if (configData != null) {
           _lowThreshold = configData['lowThreshold'] ?? 30;
@@ -65,16 +71,27 @@ class _DetailSoilScreenState extends State<DetailSoilScreen> {
         // Process history for the chart
         if (historyData != null) {
           final List<FlSpot> chartData = [];
+
           historyData.forEach((key, value) {
             final item = value as Map<dynamic, dynamic>;
             final timestamp = (item['timestamp'] ?? 0).toDouble();
             final soil = (item['soilMoisture'] ?? 0).toDouble();
+
             if (timestamp > 0) {
-              chartData.add(FlSpot(timestamp, soil));
+              // ✅ Cek agar tidak ada duplikat atau nilai 0 yang muncul setelah angka valid
+              if (soil > 0) {
+                if (chartData.isEmpty || chartData.last.y != soil) {
+                  chartData.add(FlSpot(timestamp, soil));
+                }
+              }
             }
           });
-          _soilData = chartData;
+
+          setState(() {
+            _soilData = chartData;
+          });
         }
+
 
         setState(() {});
       }
@@ -507,38 +524,38 @@ class _DetailSoilScreenState extends State<DetailSoilScreen> {
           // Header
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: const Color(0xFF4F4DAE),
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(20),
-              ),
+            decoration: const BoxDecoration(
+              color: Color(0xFF4F4DAE),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
             ),
             child: Row(
               children: [
-                const Icon(
-                  Icons.show_chart,
-                  color: Colors.white,
-                  size: 20,
-                ), // Added chart icon
+                const Icon(Icons.show_chart, color: Colors.white, size: 20),
                 const SizedBox(width: 8),
                 Text(
                   'GRAFIK KELEMBAPAN TANAH',
                   style: GoogleFonts.poppins(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
-                    fontSize: 13, // Reduced from 14
+                    fontSize: 13,
                   ),
                 ),
               ],
             ),
           ),
+
           // Chart
-          Container(
-            padding: const EdgeInsets.fromLTRB(0, 24, 24, 24),
-            height: 300, // Fixed height for better proportion
-            child: _soilData.isEmpty
-                ? const Center(child: CircularProgressIndicator())
-                : LineChart(soilChart()),
+          ClipRRect(
+            borderRadius: const BorderRadius.vertical(
+              bottom: Radius.circular(20),
+            ),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(16, 24, 24, 24),
+              height: 300,
+              child: _soilData.isEmpty
+                  ? const Center(child: CircularProgressIndicator())
+                  : LineChart(soilChart()),
+            ),
           ),
         ],
       ),
@@ -546,84 +563,88 @@ class _DetailSoilScreenState extends State<DetailSoilScreen> {
   }
 
   LineChartData soilChart() {
+    final normalizedSpots =
+        _soilData.map((e) => FlSpot(e.x, e.y < 0 ? 0.0 : e.y)).toList()
+          ..sort((a, b) => a.x.compareTo(b.x));
+
+    if (normalizedSpots.isEmpty) return LineChartData(lineBarsData: []);
+
+    final rawMinY = 0.0;
+    final rawMaxY = normalizedSpots
+        .map((e) => e.y)
+        .reduce((a, b) => a > b ? a : b);
+
+    final steps = 5;
+    double interval = (rawMaxY / steps);
+    interval = (interval / 5).ceil() * 5; // kelipatan 5
+
+    final minY = rawMinY - interval * 0.2;
+    final maxY = rawMaxY + interval * 0.2;
+
+    // gradient utama
+    final gradientColors = [
+      const Color(0xFF5D51BC).withOpacity(1.0), // garis lebih tegas
+      const Color(0xFF5044AA).withOpacity(0.2),
+    ];
+
     return LineChartData(
-      gridData: FlGridData(
-        show: true,
-        drawVerticalLine: false,
-        horizontalInterval: 10,
-        getDrawingHorizontalLine: (value) {
-          return FlLine(color: Colors.grey.withOpacity(0.15), strokeWidth: 1);
-        },
-      ),
+      minY: minY < 0 ? 0 : minY,
+      maxY: maxY,
+      gridData: FlGridData(show: false),
       titlesData: FlTitlesData(
         leftTitles: AxisTitles(
           sideTitles: SideTitles(
             showTitles: true,
-            reservedSize: 46,
-            interval: 20,
-            getTitlesWidget: (value, meta) {
-              return Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: Text(
-                  '${value.toInt()}%',
-                  style: GoogleFonts.poppins(
-                    color: Colors.grey[600],
-                    fontSize: 12,
-                  ),
+            interval: interval,
+            getTitlesWidget: (value, meta) => Padding(
+              padding: const EdgeInsets.only(right: 0),
+              child: Text(
+                '${value.toInt()}%',
+                style: GoogleFonts.poppins(
+                  color: Colors.grey[700],
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
                 ),
-              );
-            },
+              ),
+            ),
           ),
         ),
         bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
         topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
         rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
       ),
-      borderData: FlBorderData(
-        show: true,
-        border: Border(
-          left: BorderSide(color: Colors.grey.withOpacity(0.2)),
-          bottom: BorderSide(color: Colors.grey.withOpacity(0.2)),
-        ),
-      ),
-      minX: _soilData.first.x,
-      maxX: _soilData.last.x,
-      minY: 0,
-      maxY: 100,
+      borderData: FlBorderData(show: false),
+      clipData: FlClipData.all(),
       lineBarsData: [
         LineChartBarData(
-          spots: _soilData,
+          spots: normalizedSpots,
           isCurved: true,
-          gradient: const LinearGradient(
-            colors: [Color(0xFF8D8AFF), Color(0xFF4F4DAE)],
+          barWidth: 3,
+          isStrokeCapRound: true,
+          gradient: LinearGradient(
+            colors: [
+              const Color(0xFF5D51BC).withOpacity(1.0), // tegas di atas
+              const Color(0xFF5044AA).withOpacity(0.2), // transparan di bawah
+            ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
-          barWidth: 3,
-          isStrokeCapRound: true,
-          dotData: FlDotData(
-            show: true,
-            getDotPainter: (spot, percent, barData, index) =>
-                FlDotCirclePainter(
-                  radius: 4,
-                  color: const Color(0xFF4F4DAE),
-                  strokeWidth: 2,
-                  strokeColor: Colors.white,
-                ),
-          ),
+          dotData: FlDotData(show: true),
           belowBarData: BarAreaData(
             show: true,
             gradient: LinearGradient(
               colors: [
-                const Color(0xFF8D8AFF).withOpacity(0.2),
-                const Color(0xFF4F4DAE).withOpacity(0.0),
+                const Color(0xFF5D51BC).withOpacity(0.3),
+                const Color(0xFF5044AA).withOpacity(0.0),
               ],
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
             ),
           ),
-        ),
+        )
       ],
     );
   }
+
+
 }

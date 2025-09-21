@@ -467,6 +467,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                                   : 'Soil',
                               style: GoogleFonts.poppins(
                                 fontWeight: FontWeight.w500,
+                                fontSize: 12,
                                 color: const Color(0xFF5347AD),
                               ),
                             ),
@@ -513,6 +514,9 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
     int startIndex = currentPage * itemsPerPage;
     int endIndex = min(startIndex + itemsPerPage, _filteredHistory.length);
     List currentItems = _filteredHistory.sublist(startIndex, endIndex);
+
+    // Urutkan biar yang terbaru di atas
+    final reversedItems = currentItems.reversed.toList();
 
     return Container(
       decoration: BoxDecoration(
@@ -646,17 +650,31 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
               : ListView.separated(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  itemCount: currentItems.length,
+                  itemCount: reversedItems.length,
                   separatorBuilder: (context, index) =>
                       const SizedBox(height: 8),
                   itemBuilder: (context, index) {
                     final history = currentItems[index];
-                    final logTime = DateTime.fromMillisecondsSinceEpoch(
-                      history['timestamp'] * 1000,
-                    );
+
+                    // ambil timestamp dari IoT
+                    final iotTimestamp = history['timestamp'] ?? 0;
+
+                    // kalau timestamp valid (> 0), pakai itu
+                    // kalau tidak valid, fallback ke waktu sekarang
+                    final logTime = iotTimestamp > 0
+                        ? DateTime.fromMillisecondsSinceEpoch(
+                            iotTimestamp * 1000,
+                          ).toLocal()
+                        : DateTime.now();
+
+                    // Waktu sekarang dari aplikasi (bukan IoT)
+                    final now = DateTime.now();
+
+                    // format waktu yang ditampilkan (pakai waktu sekarang)
                     final formattedTime = DateFormat(
-                      'HH:mm dd-MM-yy',
-                    ).format(logTime);
+                      'HH:mm dd/MM/yyyy',
+                    ).format(now);
+
 
                     return Card(
                       color: Colors.white,
@@ -737,26 +755,66 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
     );
   }
 
-  LineChartData _mainChart() {
+ LineChartData _mainChart() {
+    final allSpots = [
+      if (_showSuhu) ..._suhuSpots,
+      if (_showLembap) ..._lembapSpots,
+      if (_showSoil) ..._soilSpots,
+    ];
+
+    if (allSpots.isEmpty) return LineChartData(lineBarsData: []);
+
+    final minX = allSpots
+        .map((e) => e.x)
+        .reduce((a, b) => a < b ? a : b)
+        .toDouble();
+    final maxX = allSpots
+        .map((e) => e.x)
+        .reduce((a, b) => a > b ? a : b)
+        .toDouble();
+    final minY = 0.0;
+    final maxY = allSpots
+        .map((e) => e.y < 0 ? 0.0 : e.y.toDouble())
+        .reduce((a, b) => a > b ? a : b);
+
+    List<FlSpot> normalizeSpots(List<FlSpot> spots) {
+      return spots
+          .map(
+            (e) => FlSpot(
+              e.x.clamp(minX, maxX).toDouble(),
+              (e.y < 0 ? 0.0 : e.y).clamp(minY, maxY).toDouble(),
+            ),
+          )
+          .toList();
+    }
+
     return LineChartData(
+      minX: minX,
+      maxX: maxX,
+      minY: minY,
+      maxY: maxY + 5.0,
+      clipData: FlClipData.all(),
       gridData: FlGridData(show: false),
+      borderData: FlBorderData(show: false),
       titlesData: FlTitlesData(
         leftTitles: AxisTitles(
           sideTitles: SideTitles(
             showTitles: true,
             reservedSize: 40,
-            interval: 50,
+            interval: (maxY + 5.0) / 5,
           ),
         ),
         bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
         topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
         rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
       ),
-      borderData: FlBorderData(show: false),
       lineBarsData: [
-        if (_showSuhu) _buildLineBarData(_suhuSpots, Colors.orange),
-        if (_showLembap) _buildLineBarData(_lembapSpots, Colors.red),
-        if (_showSoil) _buildLineBarData(_soilSpots, Colors.blue),
+        if (_showSuhu)
+          _buildLineBarData(normalizeSpots(_suhuSpots), Colors.orange),
+        if (_showLembap)
+          _buildLineBarData(normalizeSpots(_lembapSpots), Colors.red),
+        if (_showSoil)
+          _buildLineBarData(normalizeSpots(_soilSpots), Colors.blue),
       ],
     );
   }

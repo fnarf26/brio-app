@@ -61,11 +61,12 @@ class _DetailDhtScreenState extends State<DetailDhtScreen> {
         });
 
         if (count > 0) {
-          final lastTimestamp = data.values.last['timestamp'];
-          final dt = DateTime.fromMillisecondsSinceEpoch(lastTimestamp * 1000);
+          final dt = DateTime.now(); // waktu saat ini perangkat
           _lastUpdate =
-              "${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')} ${dt.day}-${dt.month}-${dt.year}";
+              "${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')} "
+              "${dt.day.toString().padLeft(2, '0')}-${dt.month.toString().padLeft(2, '0')}-${dt.year}";
         }
+
 
         setState(() {
           _temperatureData = tempData;
@@ -649,11 +650,35 @@ class _DetailDhtScreenState extends State<DetailDhtScreen> {
   // --- GRAFIK ---
 
   LineChartData temperatureChart() {
+    // normalisasi data: negatif → 0
+    final normalizedSpots = _temperatureData
+        .map((e) => FlSpot(e.x, e.y < 0 ? 0.0 : e.y))
+        .toList();
+
+    if (normalizedSpots.isEmpty) {
+      return LineChartData(
+        lineBarsData: [],
+        minY: 0,
+        maxY: 10,
+        titlesData: FlTitlesData(show: false),
+      );
+    }
+
+    // cari max Y dan bulatkan ke kelipatan 5
+    final rawMaxY = normalizedSpots
+        .map((e) => e.y)
+        .reduce((a, b) => a > b ? a : b);
+    final interval = 5.0;
+    final roundedMaxY = ((rawMaxY / interval).ceil()) * interval;
+
     return LineChartData(
+      minY: 0,
+      maxY: roundedMaxY,
+      clipData: FlClipData.all(),
       gridData: FlGridData(
         show: true,
         drawVerticalLine: false,
-        horizontalInterval: 5,
+        horizontalInterval: interval,
         getDrawingHorizontalLine: (value) {
           return FlLine(color: Colors.grey.withOpacity(0.1), strokeWidth: 1);
         },
@@ -663,10 +688,14 @@ class _DetailDhtScreenState extends State<DetailDhtScreen> {
           sideTitles: SideTitles(
             showTitles: true,
             reservedSize: 40,
+            interval: interval,
             getTitlesWidget: (value, meta) {
               return Text(
                 '${value.toInt()}°C',
-                style: GoogleFonts.poppins(color: Colors.grey, fontSize: 12),
+                style: GoogleFonts.poppins(
+                  color: Colors.grey.shade600,
+                  fontSize: 12,
+                ),
               );
             },
           ),
@@ -678,22 +707,18 @@ class _DetailDhtScreenState extends State<DetailDhtScreen> {
       borderData: FlBorderData(show: false),
       lineBarsData: [
         LineChartBarData(
-          spots: _temperatureData,
+          spots: normalizedSpots,
           isCurved: true,
-          gradient: const LinearGradient(
-            colors: [Color(0xFF5D51BC), Color(0xFF5044AA)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
+          color: const Color(0xFF5D51BC),
           barWidth: 3,
           isStrokeCapRound: true,
           dotData: FlDotData(
             show: true,
             getDotPainter: (spot, percent, barData, index) {
               return FlDotCirclePainter(
-                radius: 4,
+                radius: 3,
                 color: const Color(0xFF5D51BC),
-                strokeWidth: 2,
+                strokeWidth: 1,
                 strokeColor: Colors.white,
               );
             },
@@ -715,17 +740,67 @@ class _DetailDhtScreenState extends State<DetailDhtScreen> {
   }
 
   LineChartData humidityChart() {
+    // normalisasi data: negatif → 0
+    final normalizedSpots = _humidityData
+        .map((e) => FlSpot(e.x, e.y < 0 ? 0.0 : e.y))
+        .toList();
+
+    if (normalizedSpots.isEmpty) {
+      return LineChartData(
+        lineBarsData: [],
+        minY: 0,
+        maxY: 10,
+        titlesData: FlTitlesData(show: false),
+      );
+    }
+
+    // cari max Y dan bulatkan ke kelipatan 10
+    final rawMaxY = normalizedSpots
+        .map((e) => e.y)
+        .reduce((a, b) => a > b ? a : b);
+    final interval = 10.0;
+    final roundedMaxY = ((rawMaxY / interval).ceil()) * interval;
+
     final gradient = LinearGradient(
-      colors: [const Color(0xFF42A5F5), const Color(0xFF1976D2)],
+      colors: [
+        const Color(0xFF5D51BC).withOpacity(0.8), // garis utama tegas
+        const Color(
+          0xFF5044AA,
+        ).withOpacity(0.2), // gradient bawah tetap terlihat
+      ],
+
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
     );
 
     return LineChartData(
-      gridData: FlGridData(show: false),
+      minY: 0,
+      maxY: roundedMaxY,
+      clipData: FlClipData.all(),
+      gridData: FlGridData(
+        show: true,
+        drawVerticalLine: false,
+        horizontalInterval: interval,
+        getDrawingHorizontalLine: (value) {
+          return FlLine(color: Colors.grey.withOpacity(0.1), strokeWidth: 1);
+        },
+      ),
       titlesData: FlTitlesData(
         leftTitles: AxisTitles(
-          sideTitles: SideTitles(showTitles: true, reservedSize: 40),
+          sideTitles: SideTitles(
+            showTitles: true,
+            reservedSize: 40,
+            interval: interval,
+            getTitlesWidget: (value, meta) {
+              return Text(
+                '${value.toInt()}%',
+                style: GoogleFonts.poppins(
+                  color: Colors.grey.shade600,
+                  fontSize: 12,
+                ),
+              );
+            },
+          ),
         ),
         bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
         topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -734,18 +809,27 @@ class _DetailDhtScreenState extends State<DetailDhtScreen> {
       borderData: FlBorderData(show: false),
       lineBarsData: [
         LineChartBarData(
-          spots: _humidityData,
+          spots: normalizedSpots,
           isCurved: true,
           gradient: gradient,
           barWidth: 4,
           isStrokeCapRound: true,
-          dotData: FlDotData(show: false),
+          dotData: FlDotData(
+            show: true, // tampilkan lingkaran
+            getDotPainter: (spot, percent, barData, index) =>
+                FlDotCirclePainter(
+                  radius: 3,
+                  color: const Color(0xFF5D51BC),
+                  strokeWidth: 1,
+                  strokeColor: Colors.white,
+                ),
+          ),
           belowBarData: BarAreaData(
             show: true,
             gradient: LinearGradient(
               colors: [
-                const Color(0xFF42A5F5).withOpacity(0.3),
-                const Color(0xFF1976D2).withOpacity(0.0),
+                const Color(0xFF5D51BC).withOpacity(0.5),
+                const Color(0xFF5044AA).withOpacity(0.0),
               ],
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
@@ -755,4 +839,5 @@ class _DetailDhtScreenState extends State<DetailDhtScreen> {
       ],
     );
   }
+
 }

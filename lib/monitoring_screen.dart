@@ -101,28 +101,52 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
       }
     });
 
-    _historySubscription = _deviceRef.child('history').limitToLast(4).onValue.listen((
-      event,
-    ) {
-      final data = event.snapshot.value as Map<dynamic, dynamic>?;
-      if (data != null && mounted) {
-        final List<Map<String, dynamic>> loadedHistory = [];
-        data.forEach((key, value) {
-          final item = value as Map<dynamic, dynamic>;
-          final timestamp = item['timestamp'] ?? 0;
-          final dt = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
-          loadedHistory.add({
-            'text':
-                'Suhu : ${item['temperature']}°C & Kelembapan : ${item['humidity']}% & Soil : ${item['soilMoisture']}%',
-            'time':
-                "${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')} ${dt.day}-${dt.month}-${dt.year}",
-          });
+    _historySubscription = _deviceRef
+        .child('history')
+        .limitToLast(4)
+        .onValue
+        .listen((event) {
+          final data = event.snapshot.value as Map<dynamic, dynamic>?;
+          if (data != null && mounted) {
+            final List<Map<String, dynamic>> loadedHistory = [];
+            data.forEach((key, value) {
+              final item = value as Map<dynamic, dynamic>;
+              final timestamp = item['timestamp'] ?? 0;
+
+              // Tetap ambil timestamp asli utk sorting
+              final dt = DateTime.fromMillisecondsSinceEpoch(
+                timestamp * 1000,
+                isUtc: true,
+              ).toLocal();
+
+              // Waktu sekarang (bukan dari alat) utk ditampilkan
+              final now = DateTime.now();
+              // Format waktu: HH:mm - dd-MM-yyyy
+              final formattedTime =
+                  "${now.hour.toString().padLeft(2, '0')}:"
+                  "${now.minute.toString().padLeft(2, '0')} "
+                  "${now.day.toString().padLeft(2, '0')}/"
+                  "${now.month.toString().padLeft(2, '0')}/"
+                  "${now.year}";
+
+              loadedHistory.add({
+                'text':
+                    'Suhu : ${item['temperature']}°C • Kelembapan : ${item['humidity']}% • Soil : ${item['soilMoisture']}%',
+                'time': formattedTime, // tampilkan waktu sekarang
+                'timestamp':
+                    dt.millisecondsSinceEpoch, // tetap pakai alat utk urutan
+              });
+            });
+
+            // Urutkan berdasarkan timestamp (terbaru dulu)
+            loadedHistory.sort(
+              (a, b) => b['timestamp'].compareTo(a['timestamp']),
+            );
+            setState(() {
+              sensorHistory = loadedHistory.reversed.toList();
+            });
+          }
         });
-        setState(() {
-          sensorHistory = loadedHistory.reversed.toList();
-        });
-      }
-    });
   }
 
   Future<void> _updatePumpStatus(bool newStatus) async {
