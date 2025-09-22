@@ -7,7 +7,6 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:brio/detail_dht_screen.dart';
 import 'package:brio/detail_soil_screen.dart';
 import 'package:brio/riwayat_notifikasi_screen.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
 
 class MonitoringScreen extends StatefulWidget {
   const MonitoringScreen({super.key});
@@ -31,6 +30,9 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
   bool isManualControl = true;
   int lowThreshold = 30;
   int highThreshold = 80;
+
+  // Tambahkan variabel baru untuk status switch UI
+  bool pumpSwitchStatus = false;
 
   List<Map<String, dynamic>> sensorHistory = [];
 
@@ -96,66 +98,72 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
           if (configData != null) {
             lowThreshold = configData['lowThreshold'] ?? 30;
             highThreshold = configData['highThreshold'] ?? 80;
+            isManualControl = (configData['mode'] ?? 'manual') == 'manual';
+
+            // Inisialisasi pumpSwitchStatus dari config/manualPump
+            final manualPump = configData['manualPump'] ?? 'OFF';
+            pumpSwitchStatus = manualPump == 'ON';
           }
         });
       }
     });
 
-    _historySubscription = _deviceRef
-        .child('history')
-        .limitToLast(4)
-        .onValue
-        .listen((event) {
-          final data = event.snapshot.value as Map<dynamic, dynamic>?;
-          if (data != null && mounted) {
-            final List<Map<String, dynamic>> loadedHistory = [];
-            data.forEach((key, value) {
-              final item = value as Map<dynamic, dynamic>;
-              final timestamp = item['timestamp'] ?? 0;
-
-              // Tetap ambil timestamp asli utk sorting
-              final dt = DateTime.fromMillisecondsSinceEpoch(
-                timestamp * 1000,
-                isUtc: true,
-              ).toLocal();
-
-              // Waktu sekarang (bukan dari alat) utk ditampilkan
-              final now = DateTime.now();
-              // Format waktu: HH:mm - dd-MM-yyyy
-              final formattedTime =
-                  "${now.hour.toString().padLeft(2, '0')}:"
-                  "${now.minute.toString().padLeft(2, '0')} "
-                  "${now.day.toString().padLeft(2, '0')}/"
-                  "${now.month.toString().padLeft(2, '0')}/"
-                  "${now.year}";
-
-              loadedHistory.add({
-                'text':
-                    'Suhu : ${item['temperature']}°C • Kelembapan : ${item['humidity']}% • Soil : ${item['soilMoisture']}%',
-                'time': formattedTime, // tampilkan waktu sekarang
-                'timestamp':
-                    dt.millisecondsSinceEpoch, // tetap pakai alat utk urutan
-              });
-            });
-
-            // Urutkan berdasarkan timestamp (terbaru dulu)
-            loadedHistory.sort(
-              (a, b) => b['timestamp'].compareTo(a['timestamp']),
-            );
-            setState(() {
-              sensorHistory = loadedHistory.reversed.toList();
-            });
-          }
+    _historySubscription = _deviceRef.child('history').limitToLast(4).onValue.listen((
+      event,
+    ) {
+      final data = event.snapshot.value as Map<dynamic, dynamic>?;
+      if (data != null && mounted) {
+        final List<Map<String, dynamic>> loadedHistory = [];
+        data.forEach((key, value) {
+          final item = value as Map<dynamic, dynamic>;
+          final timestamp = item['timestamp'] ?? 0;
+          final dt = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
+          loadedHistory.add({
+            'text':
+                'Suhu : ${item['temperature']}°C & Kelembapan : ${item['humidity']}% & Soil : ${item['soilMoisture']}%',
+            'time':
+                "${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')} ${dt.day}-${dt.month}-${dt.year}",
+          });
         });
+        setState(() {
+          sensorHistory = loadedHistory.reversed.toList();
+        });
+      }
+    });
   }
 
-  Future<void> _updatePumpStatus(bool newStatus) async {
+  // Tambahkan fungsi untuk update mode kontrol
+  Future<void> _updateControlMode(bool manual) async {
     try {
-      if (isManualControl) {
-        await _deviceRef.child('current/pumpStatus').set(newStatus);
+      await _deviceRef.child('config/mode').set(manual ? 'manual' : 'auto');
+      if (!manual) {
+        // Jika auto, pastikan manualPump OFF
+        await _deviceRef.child('config/manualPump').set('OFF');
       }
+      setState(() {
+        isManualControl = manual;
+        if (!manual) pumpStatus = false; // Optional: update UI switch
+      });
     } catch (e) {
-      print("Gagal update Firebase: $e");
+      print("Gagal update mode kontrol: $e");
+    }
+  }
+
+  // Update fungsi _updatePumpStatus agar hanya mengubah pumpSwitchStatus
+  Future<void> _updatePumpStatus(bool newStatus) async {
+    if (!isManualControl) return;
+    setState(() {
+      pumpSwitchStatus = newStatus; // Optimistic update untuk UI switch
+    });
+    try {
+      await _deviceRef.child('config/manualPump').set(newStatus ? 'ON' : 'OFF');
+      // Tidak perlu update pumpStatus di sini, biarkan listener yang update status pompa
+    } catch (e) {
+      // Jika gagal, rollback ke status sebelumnya
+      setState(() {
+        pumpSwitchStatus = !newStatus;
+      });
+      print("Gagal update manualPump: $e");
     }
   }
 
@@ -304,15 +312,13 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
                                   _buildRadioOption(
                                     "Kontrol Manual",
                                     isManualControl,
-                                    () =>
-                                        setState(() => isManualControl = true),
+                                    () => _updateControlMode(true),
                                   ),
                                   const SizedBox(height: 16),
                                   _buildRadioOption(
                                     "Kontrol Otomatis",
                                     !isManualControl,
-                                    () =>
-                                        setState(() => isManualControl = false),
+                                    () => _updateControlMode(false),
                                   ),
                                   const SizedBox(height: 8),
                                 ],
@@ -425,25 +431,26 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
           MaterialPageRoute(builder: (context) => const DetailSoilScreen()),
         );
       },
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          SvgPicture.asset(
-            'assets/icons/soil_icon.svg',
-            height: 37,
-            colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcIn),
-          ),
-          const SizedBox(width: 10),
-          Text(
-            '$soilMoisture %',
-            style: GoogleFonts.poppins(
-              color: Colors.white,
-              fontSize: 38,
-              fontWeight: FontWeight.bold,
+      child: Center(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SvgPicture.asset(
+              'assets/icons/soil_icon.svg',
+              height: 30, // Reduced from 37 to 30
+              colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcIn),
             ),
-          ),
-          const SizedBox(height: 14),
-        ],
+            const SizedBox(width: 10),
+            Text(
+              '$soilMoisture %',
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontSize: 32, // Reduced from 38 to 32
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -465,22 +472,20 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
           MaterialPageRoute(builder: (context) => const DetailDhtScreen()),
         );
       },
-      child: Expanded(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildSensorValue(
-              Icons.thermostat,
-              '${temperature.toStringAsFixed(1)}°C',
-            ),
-            const SizedBox(height: 13),
-            _buildSensorValue(
-              Icons.water_drop,
-              '${humidity.toStringAsFixed(0)}%',
-            ),
-          ],
-        ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildSensorValue(
+            Icons.thermostat,
+            '${temperature.toStringAsFixed(1)}°C',
+          ),
+          const SizedBox(height: 8), // Reduced from 13 to 8
+          _buildSensorValue(
+            Icons.water_drop,
+            '${humidity.toStringAsFixed(0)}%',
+          ),
+        ],
       ),
     );
   }
@@ -495,26 +500,24 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
     List<Color> gradientColors = const [
       Color(0xFF8A64D6),
       Color(0xFF6A4C9C),
-    ], // Tambahkan parameter ini
+    ],
     VoidCallback? onTap,
   }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 233,
+        height: 200, // Reduced from 233 to 200
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: gradientColors, // Gunakan gradientColors yang diterima
+            colors: gradientColors,
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: gradientColors[0].withOpacity(
-                0.3,
-              ), // Gunakan warna dari gradientColors
+              color: gradientColors[0].withOpacity(0.3),
               spreadRadius: 2,
               blurRadius: 8,
               offset: const Offset(0, 4),
@@ -523,6 +526,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min, // Add this to minimize vertical space
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -548,7 +552,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
               lastUpdate,
               style: GoogleFonts.poppins(color: Colors.white70, fontSize: 10),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8), // Reduced from 12 to 8
             Text(
               title,
               style: GoogleFonts.poppins(
@@ -557,9 +561,8 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
                 fontSize: 13,
               ),
             ),
-            const SizedBox(height: 8),
-            Center(child: child),
-            const SizedBox(height: 12),
+            const SizedBox(height: 6), // Reduced from 8 to 6
+            Expanded(child: Center(child: child)),
             const Divider(color: Colors.white54),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -869,22 +872,25 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
                 ),
               ),
               Switch(
-                value: pumpStatus,
-                onChanged: isManualControl
-                    ? (val) => _updatePumpStatus(val)
-                    : null,
-                activeThumbColor: const Color.fromARGB(
-                  255,
-                  203,
-                  196,
-                  255,
-                ), // Warna thumb saat aktif
-                activeTrackColor: const Color(
-                  0xFF786CD3,
-                ), // Warna track saat aktif
-                inactiveThumbColor: Colors.grey.shade400,
-                inactiveTrackColor: Colors.grey.shade200,
-              ),
+                value: pumpSwitchStatus,
+                onChanged: isManualControl ? (val) => _updatePumpStatus(val) : null,
+                thumbColor: MaterialStateProperty.resolveWith<Color>(
+                  (states) {
+                    if (states.contains(MaterialState.selected)) {
+                      return const Color.fromARGB(255, 203, 196, 255); // aktif
+                    }
+                    return Colors.grey.shade400; // nonaktif
+                  },
+                ),
+                trackColor: MaterialStateProperty.resolveWith<Color>(
+                  (states) {
+                    if (states.contains(MaterialState.selected)) {
+                      return const Color(0xFF786CD3); // aktif
+                    }
+                    return Colors.grey.shade200; // nonaktif
+                  },
+                ),
+              )
             ],
           ),
         ],

@@ -1,17 +1,76 @@
 import 'package:brio/splash_screen.dart'; // <-- Ganti ini
-import 'package:firebase_core/firebase_core.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart'; 
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'firebase_options.dart';
+
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
+
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  print('[FCM][Background] Diterima: ${message.notification?.title} | ${message.notification?.body}');
+  _showNotification(message);
+}
+
+void _showNotification(RemoteMessage message) async {
+  const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+    'brio_channel', 'Brio Notifikasi',
+    importance: Importance.max,
+    priority: Priority.high,
+    showWhen: true,
+  );
+  const NotificationDetails notificationDetails =
+      NotificationDetails(android: androidDetails);
+
+  await flutterLocalNotificationsPlugin.show(
+    message.notification.hashCode,
+    message.notification?.title ?? 'Notifikasi',
+    message.notification?.body ?? '',
+    notificationDetails,
+  );
+}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Inisialisasi local notification
+  const AndroidNotificationChannel channel = AndroidNotificationChannel(
+    'brio_channel',
+    'Brio Notifikasi',
+    description: 'Channel untuk notifikasi FCM Brio',
+    importance: Importance.max,
+  );
+  await flutterLocalNotificationsPlugin
+      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+      ?.createNotificationChannel(channel);
+
+  const AndroidInitializationSettings androidInitSettings =
+      AndroidInitializationSettings('@mipmap/launcher_icon');
+  const InitializationSettings initSettings =
+      InitializationSettings(android: androidInitSettings);
+  await flutterLocalNotificationsPlugin.initialize(initSettings);
+
+  // Minta izin notifikasi (Android/iOS)
+  await FirebaseMessaging.instance.requestPermission();
+
+  // Subscribe ke topic "brio"
+  await FirebaseMessaging.instance.subscribeToTopic('brio');
+
+  // Handler background
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   
+  // TAMBAHKAN INI: Handler foreground di global scope
+  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    print('[FCM][Foreground] Diterima: ${message.notification?.title} | ${message.notification?.body}');
+    _showNotification(message);
+  });
+
   runApp(const MyApp());
 }
 
@@ -46,13 +105,17 @@ class _FirebaseTestScreenState extends State<FirebaseTestScreen> {
   void initState() {
     super.initState();
     _checkRealtimeDB();
+
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      print('[FCM][Foreground] Diterima: ${message.notification?.title} | ${message.notification?.body}');
+      _showNotification(message);
+    });
   }
 
   Future<void> _checkRealtimeDB() async {
     try {
       // Tampilkan URL dari firebase_options.dart
-      final dbUrl = DefaultFirebaseOptions.currentPlatform.databaseURL;
-      print("📡 Database URL: $dbUrl");
+      final dbUrl = DefaultFirebaseOptions.currentPlatform.databaseURL; 
 
       // Referensi ke Realtime Database
       final dbRef = FirebaseDatabase.instance.ref("test/ping");
