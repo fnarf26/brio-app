@@ -138,7 +138,7 @@ class _DetailSoilScreenState extends State<DetailSoilScreen> {
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: _buildSensorInfoCard('Sensor 2', _soilMoisture),
+                  child: _buildSensorInfoCard('Sensor 1', _soilMoisture),
                 ), // Placeholder
               ],
             ),
@@ -434,7 +434,7 @@ class _DetailSoilScreenState extends State<DetailSoilScreen> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'RATA-RATA',
+                  'RATA-RATA SENSOR',
                   style: GoogleFonts.poppins(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
