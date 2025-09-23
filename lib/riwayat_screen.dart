@@ -656,17 +656,6 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                   itemBuilder: (context, index) {
                     final history = currentItems[index];
 
-                    // ambil timestamp dari IoT
-                    final iotTimestamp = history['timestamp'] ?? 0;
-
-                    // kalau timestamp valid (> 0), pakai itu
-                    // kalau tidak valid, fallback ke waktu sekarang
-                    final logTime = iotTimestamp > 0
-                        ? DateTime.fromMillisecondsSinceEpoch(
-                            iotTimestamp * 1000,
-                          ).toLocal()
-                        : DateTime.now();
-
                     // Waktu sekarang dari aplikasi (bukan IoT)
                     final now = DateTime.now();
 

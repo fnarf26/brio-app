@@ -3,8 +3,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:brio/atur_threshold_screen.dart';
+import 'package:google_fonts/google_fonts.dart'; 
 
 class DetailSoilScreen extends StatefulWidget {
   const DetailSoilScreen({super.key});

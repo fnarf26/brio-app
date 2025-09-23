@@ -281,11 +281,7 @@ class _RiwayatNotifikasiScreenState extends State<RiwayatNotifikasiScreen> {
   Widget _buildNotificationCard(Map<String, dynamic> log, int index) {
     final bool isPumpOn = log['action'] == 'ON';
     final int soilValue = log['soil'];
-    final bool isLowMoisture = soilValue < 30;
-    // ambil waktu dari IoT
-    final DateTime logTime = DateTime.fromMillisecondsSinceEpoch(
-      log['timestamp'] * 1000,
-    ).toLocal();
+    final bool isLowMoisture = soilValue < 30; 
 
     // ambil waktu sekarang (aplikasi/HP)
     final DateTime now = DateTime.now();  
